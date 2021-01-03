@@ -17,9 +17,26 @@ class utils(commands.Cog):
     def __init__(self, client):
         self.client = client
 
+    #Creates embed to send to user
+    def replyMessage(self):
+        embed = discord.Embed(
+        title = "Thankyou :)",
+        description = "We have seen your suggestion!",
+        colour = discord.Colour.purple()
+        )
+        return embed
+
+    def loopUsers(self, reaction):
+        for user in suggestions:
+        #Check messages are the same
+            if reaction.message.id == user.m_ID.id:
+                #Gets user info
+                suggestionAuthor = self.client.get_user(user.u_ID)
+                return suggestionAuthor
+
     @commands.Cog.listener()
     async def on_ready(self):
-        await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name='Your suggestions'))
+        await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name='your suggestions'))
         print("Bot ready.")
 
     @commands.command()
@@ -45,7 +62,7 @@ class utils(commands.Cog):
                 for channel in ctx.guild.channels:
                     if channel.name == loggingChannel:
                         logginChannelID = channel.id
-                #Gettign user info
+                #Getting user info
                 channel = self.client.get_channel(suggestionChannelID)
                 #Creating message to suggestion channel
                 embed = discord.Embed(
@@ -93,24 +110,27 @@ class utils(commands.Cog):
         if channel.id == logginChannelID:
             if user.id != self.client.user.id:
                 if reaction.emoji == '✅':
-                    for user in suggestions:
-                        #Check messages are the same
-                        if reaction.message.id == user.m_ID.id:
-                            #Gets user info
-                            suggestionAuthor = self.client.get_user(user.u_ID)
-                            #Creates embed to send to user
-                            embed = discord.Embed(
-                            title = "Thankyou :)",
-                            description = "We have seen your suggestion!",
-                            colour = discord.Colour.purple()
-                            )
-                            #Sends embed to user
-                            await suggestionAuthor.send(embed=embed)
-                            #Clears reactions
-                            await reaction.message.clear_reactions()
+                    await self.loopUsers(reaction).send(embed=self.replyMessage())
+                    #Clears reactions
+                    await reaction.message.clear_reactions()
                 if reaction.emoji == '✉️':
+                    await self.loopUsers(reaction).send(embed=self.replyMessage())
                     #Pins the message to chat
                     await reaction.message.pin()
+                    channel = self.client.get_channel(logginChannelID)
+                    await channel.purge(limit=1)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        global logginChannelID
+        channel = payload.channel_id
+        if channel == logginChannelID:
+            if payload.user_id != self.client.user.id:
+                channel = self.client.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                await message.unpin()
+                await message.clear_reactions()
+                
                     
 def setup(client):
     client.add_cog(utils(client))
