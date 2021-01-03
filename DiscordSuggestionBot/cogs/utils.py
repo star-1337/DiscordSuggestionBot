@@ -18,7 +18,8 @@ class utils(commands.Cog):
         self.client = client
 
     @commands.Cog.listener()
-    async def on_ready(self, ctx):
+    async def on_ready(self):
+        await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name='Your suggestions'))
         print("Bot ready.")
 
     @commands.command()
