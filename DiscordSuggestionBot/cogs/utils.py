@@ -18,10 +18,10 @@ class utils(commands.Cog):
         self.client = client
 
     #Creates embed to send to user
-    def replyMessage(self):
+    def embedMsg(self, message):
         embed = discord.Embed(
-        title = "Thankyou :)",
-        description = "We have seen your suggestion!",
+        title = "Suggestion bot ❓",
+        description = message,
         colour = discord.Colour.purple()
         )
         return embed
@@ -37,7 +37,6 @@ class utils(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name='your suggestions'))
-        print("Bot ready.")
 
     @commands.command()
     async def setup (self, ctx):
@@ -64,14 +63,8 @@ class utils(commands.Cog):
                         logginChannelID = channel.id
                 #Getting user info
                 channel = self.client.get_channel(suggestionChannelID)
-                #Creating message to suggestion channel
-                embed = discord.Embed(
-                        title = "Suggestions",
-                        description = "Send a your suggestion in this channel to create a suggestion",
-                        colour = discord.Colour.purple()
-                    )
                 #Sending the message
-                await channel.send(embed=embed)
+                await channel.send(embed=self.embedMsg("Send your suggestion here for us to review."))
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -91,7 +84,7 @@ class utils(commands.Cog):
                     suggestion = s.content
                 await message.delete()
                 #Creating a message and adding history into an embed
-                embed=discord.Embed(title = "Suggestion", description = suggestion, color = discord.Colour.purple())
+                embed=discord.Embed(title = "Suggestion bot ❓", description = suggestion, color = discord.Colour.purple())
                 embed.set_footer(text = f"Suggested by {message.author} | {timeMsgSent}", icon_url=message.author.avatar_url)
                 channel = self.client.get_channel(logginChannelID)
                 #Sending embeded message to logging channel
@@ -101,7 +94,8 @@ class utils(commands.Cog):
                 suggestions.append(_suggestionRecord)
                 #Reacting to message
                 await suggestionMSG.add_reaction('✅')
-                await suggestionMSG.add_reaction('✉️')
+                await suggestionMSG.add_reaction('📌')
+                await suggestionMSG.add_reaction('❌')
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -110,15 +104,18 @@ class utils(commands.Cog):
         if channel.id == logginChannelID:
             if user.id != self.client.user.id:
                 if reaction.emoji == '✅':
-                    await self.loopUsers(reaction).send(embed=self.replyMessage())
+                    await self.loopUsers(reaction).send(embed=self.embedMsg("We will be implementing this into our server."))
                     #Clears reactions
                     await reaction.message.clear_reactions()
-                if reaction.emoji == '✉️':
-                    await self.loopUsers(reaction).send(embed=self.replyMessage())
+                if reaction.emoji == '📌':
+                    await self.loopUsers(reaction).send(embed=self.embedMsg("We are busy right now. We will respond as soon as possible."))
                     #Pins the message to chat
                     await reaction.message.pin()
                     channel = self.client.get_channel(logginChannelID)
                     await channel.purge(limit=1)
+                if reaction.emoji == '❌':
+                    await self.loopUsers(reaction).send(embed=self.embedMsg("We don't think this suits our server but thank you for the suggestion."))
+                    await reaction.message.clear_reactions()
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
@@ -129,8 +126,9 @@ class utils(commands.Cog):
                 channel = self.client.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
                 await message.unpin()
-                await message.clear_reactions()
+
                 
+
                     
 def setup(client):
     client.add_cog(utils(client))
